@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap');
 
 :root {
   --background: #ffffff;
@@ -17,10 +16,6 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', system-ui, sans-serif;
-}
-
-.font-kannada {
-  font-family: 'Noto Sans Kannada', serif;
 }
 
 /* Custom scrollbar for a better look */

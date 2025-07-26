@@ -27,7 +27,7 @@ export interface CropAdvice {
   category: 'weather' | 'disease' | 'scheme' | 'market' | 'daily';
   title: string;
   englishSummary: string;
-  kannadaText: string;
+  text: string;
   audioUrl?: string;
   imageUrl?: string;
   priority: 'high' | 'medium' | 'low';
@@ -61,7 +61,6 @@ export interface MarketData {
 export interface GovernmentScheme {
   id: string;
   name: string;
-  kannadaName: string;
   description: string;
   benefit: string;
   eligibilityCriteria: {

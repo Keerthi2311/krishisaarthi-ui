@@ -78,6 +78,7 @@ const FarmerSetupPage = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('Submitting form with data:', formData);
     e.preventDefault();
     
     if (!formData.fullName || !formData.district || !formData.soilType || 

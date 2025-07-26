@@ -3,18 +3,11 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Send } from 'lucide-react';
+import { Upload, Mic, MicOff, Send, LogOut, BarChart3 as BarChart } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { CropAdvice } from '@/types';
-import { 
-  ProtectedRoute, 
-  PageLayout, 
-  Button, 
-  ImageUpload, 
-  VoiceInput, 
-  AdviceResults 
-} from '@/components';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import toast from 'react-hot-toast';
 
 const SmartAdvisorPage = () => {
@@ -54,8 +47,20 @@ const SmartAdvisorPage = () => {
   const toggleRecording = async () => {
     if (!isRecording) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 48000,
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        });
+
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus',
+          audioBitsPerSecond: 48000
+        });
+
         mediaRecorderRef.current = mediaRecorder;
         audioChunksRef.current = [];
 
@@ -64,14 +69,14 @@ const SmartAdvisorPage = () => {
         };
 
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           await processAudio(audioBlob);
           stream.getTracks().forEach(track => track.stop());
         };
 
-        mediaRecorder.start();
+        mediaRecorder.start(1000); // Record in 1-second chunks
         setIsRecording(true);
-        toast.success('Recording started');
+        toast.success('Start speaking...');
       } catch (error) {
         console.error('Error starting recording:', error);
         toast.error('Failed to start recording');
@@ -80,22 +85,46 @@ const SmartAdvisorPage = () => {
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
         setIsRecording(false);
-        toast.success('Recording stopped');
+        toast.success('Recording complete');
       }
     }
   };
 
-  // Process audio (mock implementation - would use Google Speech-to-Text in real app)
-  const processAudio = async (_audioBlob: Blob) => {
+  // Process audio using Google Speech-to-Text API
+  const processAudio = async (audioBlob: Blob) => {
     try {
       setIsLoading(true);
-      // Mock transcription - in real app, send to Google Speech-to-Text API
-      const mockTranscript = "ನನ್ನ ಸಸ್ಯದಲ್ಲಿ ಹಳದಿ ಎಲೆಗಳು ಕಾಣಿಸುತ್ತಿವೆ";
-      setQueryText(mockTranscript);
-      toast.success('Voice transcribed successfully!');
+      
+      // Convert audio to base64
+      const buffer = await audioBlob.arrayBuffer();
+      const base64Audio = Buffer.from(buffer).toString('base64');
+
+      const response = await fetch('/api/speech-to-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          audio: {
+            content: base64Audio
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Speech recognition failed');
+      }
+
+      const { text } = await response.json();
+      if (text) {
+        setQueryText(text);
+        toast.success('Voice converted to text');
+      } else {
+        toast.error('No text was recognized');
+      }
     } catch (error) {
       console.error('Error processing audio:', error);
-      toast.error('Failed to process voice');
+      toast.error('Voice conversion failed');
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +146,7 @@ const SmartAdvisorPage = () => {
           category: 'disease',
           title: 'Disease Diagnosis',
           englishSummary: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          kannadaText: 'ನಿಮ್ಮ ಬೆಳೆಯಲ್ಲಿ ಪೋಷಕಾಂಶಗಳ ಕೊರತೆ ಕಾಣಿಸುತ್ತಿದೆ. ಸಾರಜನಕ ಭರಿತ ಗೊಬ್ಬರವನ್ನು ಅನ್ವಯಿಸಿ.',
+          text: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
           priority: 'high',
           timestamp: new Date(),
         },
@@ -125,7 +154,7 @@ const SmartAdvisorPage = () => {
           category: 'weather',
           title: 'Weather & Irrigation',
           englishSummary: 'Light rain expected tomorrow. Reduce watering and ensure proper drainage.',
-          kannadaText: 'ನಾಳೆ ಸಲ್ಪ ಮಳೆ ನಿರೀಕ್ಷೆ. ನೀರುಹಾಕುವುದನ್ನು ಕಡಿಮೆ ಮಾಡಿ ಮತ್ತು ಸರಿಯಾದ ಒಳಚರಂಡಿ ಖಚಿತಪಡಿಸಿ.',
+          text: 'Light rain expected tomorrow. Reduce watering and ensure proper drainage.',
           priority: 'medium',
           timestamp: new Date(),
         },
@@ -133,7 +162,7 @@ const SmartAdvisorPage = () => {
           category: 'market',
           title: 'Market Tips',
           englishSummary: 'Tomato prices are expected to rise next week. Consider harvesting soon.',
-          kannadaText: 'ಮುಂದಿನ ವಾರ ಟೊಮೇಟೊ ಬೆಲೆಗಳು ಏರಿಕೆಯಾಗುವ ನಿರೀಕ್ಷೆ. ಬೇಗ ಕೊಯ್ಲು ಮಾಡುವುದನ್ನು ಪರಿಗಣಿಸಿ.',
+          text: 'Tomato prices are expected to rise next week. Consider harvesting soon.',
           priority: 'medium',
           timestamp: new Date(),
         },
@@ -141,7 +170,7 @@ const SmartAdvisorPage = () => {
           category: 'scheme',
           title: 'Scheme Suggestions',
           englishSummary: 'You are eligible for PM-KISAN scheme. Apply for ₹6000 annual benefit.',
-          kannadaText: 'ನೀವು PM-KISAN ಯೋಜನೆಗೆ ಅರ್ಹರಾಗಿದ್ದೀರಿ. ವಾರ್ಷಿಕ ₹೬೦೦೦ ಪ್ರಯೋಜನಕ್ಕಾಗಿ ಅರ್ಜಿ ಸಲ್ಲಿಸಿ.',
+          text: 'You are eligible for PM-KISAN scheme. Apply for ₹6000 annual benefit.',
           priority: 'low',
           timestamp: new Date(),
         },
@@ -182,7 +211,7 @@ const SmartAdvisorPage = () => {
                   onClick={() => router.push('/dashboard')}
                   className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
-                  <BarChart3 className="w-4 h-4" />
+                  <BarChart className="w-4 h-4" />
                   <span>Dashboard</span>
                 </button>
                 <button
@@ -198,22 +227,6 @@ const SmartAdvisorPage = () => {
         </header>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-              <h3 className="text-lg font-semibold mb-2">📱 Ask AI Assistant</h3>
-              <p className="text-blue-100 text-sm">Upload crop photos or record voice questions in Kannada</p>
-            </div>
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
-              <h3 className="text-lg font-semibold mb-2">🌤️ Weather Updates</h3>
-              <p className="text-green-100 text-sm">Get 7-day weather forecasts for {farmerProfile?.district}</p>
-            </div>
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
-              <h3 className="text-lg font-semibold mb-2">💰 Market Prices</h3>
-              <p className="text-purple-100 text-sm">Track prices for your crops and get sell recommendations</p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Input Sections */}
             <div className="lg:col-span-2 space-y-6">
@@ -227,12 +240,10 @@ const SmartAdvisorPage = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   {imageFile ? (
                     <div className="space-y-4">
-                      <Image
+                      <img
                         src={URL.createObjectURL(imageFile)}
                         alt="Uploaded crop"
-                        width={300}
-                        height={200}
-                        className="mx-auto max-h-48 rounded-lg object-contain"
+                        className="mx-auto max-h-48 rounded-lg"
                       />
                       <p className="text-sm text-gray-600">{imageFile.name}</p>
                       <button
@@ -276,7 +287,7 @@ const SmartAdvisorPage = () => {
               <div className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                   <Mic className="w-5 h-5 mr-2 text-green-600" />
-                  Speak Your Query (Kannada)
+                  Speak Your Query
                 </h2>
                 
                 <div className="space-y-4">
@@ -305,7 +316,7 @@ const SmartAdvisorPage = () => {
                     <textarea
                       value={queryText}
                       onChange={(e) => setQueryText(e.target.value)}
-                      placeholder="Describe your farming question in Kannada..."
+                      placeholder="Describe your farming question..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                       rows={3}
                     />
@@ -368,8 +379,8 @@ const SmartAdvisorPage = () => {
                         <p className="text-sm text-gray-700 mb-2">
                           {item.englishSummary}
                         </p>
-                        <p className="text-sm text-gray-800 font-medium mb-3 font-kannada">
-                          {item.kannadaText}
+                        <p className="text-sm text-gray-800 font-medium mb-3">
+                          {item.text}
                         </p>
                         
                         {item.audioUrl && (
@@ -382,29 +393,6 @@ const SmartAdvisorPage = () => {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-
-          {/* Tips Section */}
-          <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">💡 Quick Tips</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">📷 Better Photos</h4>
-                <p className="text-sm text-gray-600">Take clear, well-lit photos of affected plant parts for accurate diagnosis.</p>
-              </div>
-              <div className="bg-white rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">🎤 Voice Commands</h4>
-                <p className="text-sm text-gray-600 font-kannada">ಕನ್ನಡದಲ್ಲಿ ಮಾತನಾಡಿ - ನಮ್ಮ AI ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತದೆ!</p>
-              </div>
-              <div className="bg-white rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">📊 Dashboard</h4>
-                <p className="text-sm text-gray-600">Check weather, market prices, and government schemes daily.</p>
-              </div>
-              <div className="bg-white rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">🚀 Best Time</h4>
-                <p className="text-sm text-gray-600">Upload photos in good lighting (morning or late afternoon).</p>
               </div>
             </div>
           </div>

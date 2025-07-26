@@ -76,7 +76,7 @@ const LoginPage = () => {
             ನಮ್ಮ ಕೃಷಿಸಾಥಿಗೆ ಸ್ವಾಗತ!
           </h2>
           <p className="text-base text-gray-600">
-            Google AI-powered agriculture assistant for Kannada farmers
+            Google AI-powered agriculture assistant for farmers
           </p>
         </div>
 

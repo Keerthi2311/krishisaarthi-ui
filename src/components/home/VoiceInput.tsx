@@ -56,7 +56,7 @@ const VoiceInput = ({
       <Card.Header>
         <h2 className="text-xl font-semibold text-gray-900 flex items-center">
           <Mic className="w-5 h-5 mr-2 text-green-600" />
-          Speak Your Query (Kannada)
+          Speak Your Query
         </h2>
       </Card.Header>
 
@@ -86,7 +86,7 @@ const VoiceInput = ({
           <textarea
             value={queryText}
             onChange={(e) => onQueryTextChange(e.target.value)}
-            placeholder="Describe your farming question in Kannada..."
+            placeholder="Describe your farming question..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
             rows={3}
           />

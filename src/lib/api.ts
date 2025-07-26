@@ -4,16 +4,45 @@ import { FarmerProfile, CropAdvice, WeatherData, MarketData } from '@/types';
 
 // Mock functions for API calls - replace with actual implementations
 
-export const speechToText = async (_audioBlob: Blob): Promise<string> => {
-  // Mock implementation - replace with Google Cloud Speech-to-Text
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve("ನನ್ನ ಸಸ್ಯದಲ್ಲಿ ಹಳದಿ ಎಲೆಗಳು ಕಾಣಿಸುತ್ತಿವೆ");
-    }, 2000);
-  });
+export const speechToText = async (audioBlob: Blob): Promise<string> => {
+  try {
+    // Convert the blob to base64
+    const buffer = await audioBlob.arrayBuffer();
+    const base64Audio = Buffer.from(buffer).toString('base64');
+
+    // Prepare the request to Google Cloud Speech-to-Text API
+    const response = await fetch('/api/speech-to-text', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        audio: {
+          content: base64Audio
+        },
+        config: {
+          encoding: 'LINEAR16',
+          sampleRateHertz: 48000,
+          languageCode: 'en-IN', // English (India) language
+          model: 'default',
+          audioChannelCount: 1,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Speech recognition failed');
+    }
+
+    const data = await response.json();
+    return data.text || '';
+  } catch (error) {
+    console.error('Speech-to-text error:', error);
+    throw new Error('Failed to convert speech to text');
+  }
 };
 
-export const textToSpeech = async (text: string, _language: string = 'kn-IN'): Promise<string> => {
+export const textToSpeech = async (text: string, _language: string = 'en-IN'): Promise<string> => {
   // Mock implementation - replace with Google Cloud Text-to-Speech
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -31,7 +60,7 @@ export const analyzeImage = async (_imageUrl: string, _query: string): Promise<C
           category: 'disease',
           title: 'Disease Diagnosis',
           englishSummary: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          kannadaText: 'ನಿಮ್ಮ ಬೆಳೆಯಲ್ಲಿ ಪೋಷಕಾಂಶಗಳ ಕೊರತೆ ಕಾಣಿಸುತ್ತಿದೆ. ಸಾರಜನಕ ಭರಿತ ಗೊಬ್ಬರವನ್ನು ಅನ್ವಯಿಸಿ.',
+          text: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
           priority: 'high',
           timestamp: new Date(),
         }
@@ -93,7 +122,7 @@ export const generateDailyPlan = async (
         category: 'daily',
         title: 'Today\'s Action Plan',
         englishSummary: 'Focus on irrigation and check for pests. Weather is favorable for fieldwork.',
-        kannadaText: 'ನೀರುಹಾಕುವುದರ ಮೇಲೆ ಗಮನ ಕೇಂದ್ರೀಕರಿಸಿ ಮತ್ತು ಕೀಟಗಳನ್ನು ಪರಿಶೀಲಿಸಿ. ಹೊಲದ ಕೆಲಸಕ್ಕೆ ಹವಾಮಾನ ಅನುಕೂಲಕರವಾಗಿದೆ.',
+        text: 'Focus on irrigation and check for pests. Weather is favorable for fieldwork.',
         priority: 'medium',
         timestamp: new Date(),
       };

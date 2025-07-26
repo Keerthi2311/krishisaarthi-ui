@@ -6,7 +6,6 @@ export const mockSchemes: GovernmentScheme[] = [
   {
     id: 'pm-kisan',
     name: 'PM-KISAN',
-    kannadaName: 'ಪ್ರಧಾನಮಂತ್ರಿ ಕಿಸಾನ್ ಸನ್ಮಾನ್ ನಿಧಿ',
     description: 'Income support scheme providing financial assistance to small and marginal farmers',
     benefit: '₹6,000 per year in three installments',
     eligibilityCriteria: {
@@ -20,7 +19,6 @@ export const mockSchemes: GovernmentScheme[] = [
   {
     id: 'raitha-bandhu',
     name: 'Raitha Bandhu',
-    kannadaName: 'ರೈತ ಬಂಧು',
     description: 'Karnataka state investment support scheme for farmers',
     benefit: '₹10,000 per hectare per season',
     eligibilityCriteria: {
@@ -32,7 +30,6 @@ export const mockSchemes: GovernmentScheme[] = [
   {
     id: 'krishi-sinchai',
     name: 'Pradhan Mantri Krishi Sinchai Yojana',
-    kannadaName: 'ಪ್ರಧಾನಮಂತ್ರಿ ಕೃಷಿ ಸಿಂಚಾಯಿ ಯೋಜನೆ',
     description: 'Scheme to expand cultivated area with assured irrigation',
     benefit: 'Up to 90% subsidy on drip irrigation systems',
     eligibilityCriteria: {
@@ -44,7 +41,6 @@ export const mockSchemes: GovernmentScheme[] = [
   {
     id: 'soil-health',
     name: 'Soil Health Card Scheme',
-    kannadaName: 'ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಕಾರ್ಡ್ ಯೋಜನೆ',
     description: 'Free soil testing and nutrient recommendations',
     benefit: 'Free soil testing worth ₹500-1000',
     eligibilityCriteria: {},
@@ -54,7 +50,6 @@ export const mockSchemes: GovernmentScheme[] = [
   {
     id: 'kisan-credit',
     name: 'Kisan Credit Card',
-    kannadaName: 'ಕಿಸಾನ್ ಕ್ರೆಡಿಟ್ ಕಾರ್ಡ್',
     description: 'Short-term credit support for farming expenses',
     benefit: 'Credit up to ₹3 lakhs at 4% interest',
     eligibilityCriteria: {
@@ -193,36 +188,30 @@ const getCropBasePrice = (crop: string): number => {
   return basePrices[crop] || 3000; // Default price if crop not found
 };
 
-export const kannadaPhrases = {
-  welcome: 'ನಮ್ಮ ಕೃಷಿಸಾಥಿಗೆ ಸ್ವಾಗತ!',
-  weatherAdvice: 'ಮುಂದಿನ ವಾರ ಮಧ್ಯಮ ಮಳೆ ನಿರೀಕ್ಷೆ. ನೀರುಹಾಕುವುದನ್ನು ಕಡಿಮೆ ಮಾಡಿ.',
-  marketAdvice: 'ಈ ವಾರ ಟೊಮೇಟೊ ಬೆಲೆಗಳು ಏರಿಕೆಯಾಗಿವೆ. ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ಸಮಯ.',
-  diseaseDetected: 'ನಿಮ್ಮ ಬೆಳೆಯಲ್ಲಿ ಪೋಷಕಾಂಶಗಳ ಕೊರತೆ ಕಾಣಿಸುತ್ತಿದೆ.',
-  goodMorning: 'ಶುಭೋದಯ! ಇಂದಿನ ಕೃಷಿ ಕಾರ್ಯಗಳು ಪ್ರಾರಂಭಿಸೋಣ.',
-  schemeEligible: 'ನೀವು ಸರ್ಕಾರಿ ಯೋಜನೆಗಳಿಗೆ ಅರ್ಹರಾಗಿದ್ದೀರಿ.',
-  thankYou: 'ಧನ್ಯವಾದಗಳು! ಯಶಸ್ವಿ ಕೃಷಿಗಾಗಿ ನಮ್ಮ ಶುಭಾಶಯಗಳು.'
+export const phrases = {
+  welcome: 'Welcome to KrishiSaarthi!',
+  weatherAdvice: 'Moderate rain expected next week. Reduce irrigation.',
+  marketAdvice: 'Tomato prices are increasing this week. Good time to sell.',
+  diseaseDetected: 'Your crop shows signs of nutrient deficiency.',
+  goodMorning: 'Good morning! Let\'s start today\'s farming activities.',
+  schemeEligible: 'You are eligible for government schemes.',
+  thankYou: 'Thank you! Best wishes for successful farming.'
 };
 
 export const commonDiseases = [
   {
     name: 'Leaf Spot',
-    kannadaName: 'ಎಲೆ ಕಲೆ',
     symptoms: 'Brown or black spots on leaves',
-    treatment: 'Apply copper-based fungicide',
-    kannadaTreatment: 'ತಾಮ್ರ ಆಧಾರಿತ ಶಿಲೀಂಧ್ರನಾಶಕ ಅನ್ವಯಿಸಿ'
+    treatment: 'Apply copper-based fungicide'
   },
   {
     name: 'Powdery Mildew',
-    kannadaName: 'ಪುಡಿ ಶಿಲೀಂಧ್ರ',
     symptoms: 'White powdery growth on leaves',
-    treatment: 'Use sulfur-based spray',
-    kannadaTreatment: 'ಗಂಧಕ ಆಧಾರಿತ ಸಿಂಪಣೆ ಬಳಸಿ'
+    treatment: 'Use sulfur-based spray'
   },
   {
     name: 'Nutrient Deficiency',
-    kannadaName: 'ಪೋಷಕಾಂಶ ಕೊರತೆ',
     symptoms: 'Yellowing of leaves, stunted growth',
-    treatment: 'Apply balanced NPK fertilizer',
-    kannadaTreatment: 'ಸಮತೋಲಿತ NPK ಗೊಬ್ಬರ ಅನ್ವಯಿಸಿ'
+    treatment: 'Apply balanced NPK fertilizer'
   }
 ];

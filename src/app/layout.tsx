@@ -5,8 +5,8 @@ import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "KrishiSaarthi - ನಮ್ಮ ಕೃಷಿಸಾಥಿ",
-  description: "Google AI-powered agriculture assistant for Kannada farmers",
-  keywords: ["agriculture", "farming", "Karnataka", "Kannada", "AI", "assistant"],
+  description: "Google AI-powered agriculture assistant for farmers",
+  keywords: ["agriculture", "farming", "Karnataka", "AI", "assistant"],
 };
 
 export default function RootLayout({

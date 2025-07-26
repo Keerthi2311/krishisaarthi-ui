@@ -61,7 +61,7 @@ const AdviceResults = ({ advice, loading = false }: AdviceResultsProps) => {
                   {item.englishSummary}
                 </p>
                 <p className="text-sm text-gray-800 font-medium mb-3 font-kannada">
-                  {item.kannadaText}
+                  {item.text}
                 </p>
                 
                 {item.audioUrl && (

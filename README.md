@@ -1,35 +1,39 @@
-# KrishiSaarthi - ನಮ್ಮ ಕೃಷಿಸಾಥಿ
+# KrishiSaarthi - Your Farming Assistant
 
-**Google AI-powered agriculture assistant for Kannada farmers**
+**Google AI-powered agriculture assistant for farmers**
 
 KrishiSaarthi is an advanced agricultural assistant built with Google's AI technologies to help Kannada farmers make informed decisions about their crops, weather, market trends, and government schemes.
 
 ## 🌟 Features
 
 ### 🔐 Page 1: Login Page (/)
-- **Kannada Welcome**: "ನಮ್ಮ ಕೃಷಿಸಾಥಿಗೆ ಸ್ವಾಗತ!"
+
+- **Welcome Message**: "Welcome to KrishiSaarthi!"
 - **Google Sign-In**: Firebase Authentication with Google OAuth
 - **Phone Authentication**: OTP-based phone number verification
 - **Farmer Animation**: Beautiful UI with farmer-themed graphics
 
 ### 📝 Page 2: Farmer Profile Setup (/setup)
+
 - **Comprehensive Profile**: Full name, district, soil type, farming experience
 - **Crop Selection**: Multi-select interface for crops grown
 - **Land Details**: Size and irrigation type configuration
 - **Firestore Integration**: All data stored securely in Firebase
 
 ### 🧠 Page 3: Smart Interaction Page (/home)
+
 - **Image Upload**: Crop disease diagnosis through image analysis
-- **Voice Input**: Kannada speech-to-text integration
+- **Voice Input**: English speech-to-text integration
 - **AI Recommendations**: Multi-category advice system
   - Weather & Irrigation
   - Disease Diagnosis
   - Market Tips
   - Government Schemes
   - Daily Action Plans
-- **Audio Output**: Text-to-speech in Kannada
+- **Audio Output**: Text-to-speech in English
 
 ### 📊 Page 4: Personalized Dashboard (/dashboard)
+
 - **Weather Forecast**: 7-day weather predictions with farming tips
 - **Market Trends**: Real-time crop price analysis and sell/hold recommendations
 - **Government Schemes**: Personalized scheme suggestions with eligibility matching
@@ -37,6 +41,7 @@ KrishiSaarthi is an advanced agricultural assistant built with Google's AI techn
 ## 🏗️ Technology Stack
 
 ### Frontend
+
 - **Next.js 15** with App Router
 - **TypeScript** for type safety
 - **Tailwind CSS** for styling
@@ -44,6 +49,7 @@ KrishiSaarthi is an advanced agricultural assistant built with Google's AI techn
 - **Lucide React** for icons
 
 ### Backend & AI
+
 - **Firebase Authentication** (Google & Phone OTP)
 - **Firebase Firestore** for data storage
 - **Firebase Storage** for file uploads
@@ -53,6 +59,7 @@ KrishiSaarthi is an advanced agricultural assistant built with Google's AI techn
 - **Google Vertex AI** (Gemini Pro Vision for image analysis)
 
 ### Data Structure
+
 ```
 Firestore Collections:
 ├── users/{userId}
@@ -65,6 +72,7 @@ Firestore Collections:
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or yarn
 - Firebase project with enabled services
@@ -72,18 +80,21 @@ Firestore Collections:
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-username/krishisaarthi.git
    cd krishisaarthi
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
    Create a `.env.local` file in the root directory:
+
    ```env
    # Firebase Configuration
    NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
@@ -105,6 +116,7 @@ Firestore Collections:
    ```
 
 4. **Run the development server**
+
    ```bash
    npm run dev
    ```
@@ -115,11 +127,13 @@ Firestore Collections:
 ## 🔧 Firebase Setup
 
 1. **Create a Firebase Project**
+
    - Go to [Firebase Console](https://console.firebase.google.com/)
    - Create a new project
    - Enable Authentication, Firestore, and Storage
 
 2. **Configure Authentication**
+
    - Enable Google Sign-In
    - Enable Phone Number Sign-In
    - Configure authorized domains
@@ -170,6 +184,7 @@ Synthesized Response (Kannada Voice + UI)
 ## 🌾 Supported Crops
 
 The system supports major Karnataka crops including:
+
 - Rice (Paddy), Maize, Jowar, Bajra, Ragi
 - Cotton, Sugarcane, Groundnut, Sunflower
 - Vegetables: Tomato, Onion, Potato, Brinjal
@@ -212,6 +227,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and queries:
+
 - Email: support@krishisaarthi.com
 - Phone: +91-XXXX-XXXXXX
 

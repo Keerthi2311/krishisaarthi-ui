@@ -4,6 +4,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Set this to true to bypass authentication (DEVELOPMENT ONLY)
+const DISABLE_AUTH = true;
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireProfile?: boolean;
@@ -14,7 +17,7 @@ export default function ProtectedRoute({ children, requireProfile = false }: Pro
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !DISABLE_AUTH) {
       if (!user) {
         router.push('/');
       } else if (requireProfile && !farmerProfile) {
@@ -23,7 +26,7 @@ export default function ProtectedRoute({ children, requireProfile = false }: Pro
     }
   }, [user, farmerProfile, loading, requireProfile, router]);
 
-  if (loading) {
+  if (loading && !DISABLE_AUTH) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <div className="text-center">
@@ -39,12 +42,14 @@ export default function ProtectedRoute({ children, requireProfile = false }: Pro
     );
   }
 
-  if (!user) {
-    return null; // Will redirect to login
-  }
+  if (!DISABLE_AUTH) {
+    if (!user) {
+      return null; // Will redirect to login
+    }
 
-  if (requireProfile && !farmerProfile) {
-    return null; // Will redirect to setup
+    if (requireProfile && !farmerProfile) {
+      return null; // Will redirect to setup
+    }
   }
 
   return <>{children}</>;

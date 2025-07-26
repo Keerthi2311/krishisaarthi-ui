@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  Cloud, 
   TrendingUp, 
   FileText, 
   ArrowLeft, 
   Sun, 
   CloudRain, 
   DollarSign,
-  Award
+  Award,
+  Cloud
 } from 'lucide-react';
 import { WeatherData, MarketData, GovernmentScheme } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -79,7 +79,6 @@ const DashboardPage = () => {
         {
           id: '1',
           name: 'PM-KISAN',
-          kannadaName: 'ಪ್ರಧಾನಮಂತ್ರಿ ಕಿಸಾನ್ ಸನ್ಮಾನ್ ನಿಧಿ',
           description: 'Income support scheme for small and marginal farmers',
           benefit: '₹6,000 per year',
           eligibilityCriteria: {
@@ -91,7 +90,6 @@ const DashboardPage = () => {
         {
           id: '2',
           name: 'Raitha Bandhu',
-          kannadaName: 'ರೈತ ಬಂಧು',
           description: 'Karnataka state investment support scheme',
           benefit: '₹10,000 per hectare',
           eligibilityCriteria: {
@@ -154,12 +152,12 @@ const DashboardPage = () => {
           <div className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Today's Weather</p>
+                <p className="text-sm font-medium text-gray-600">Today&apos;s Weather</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {weatherData[0]?.temperature.max || 28}°C
                 </p>
                 <p className="text-sm text-gray-500">
-                  {weatherData[0]?.description || 'Partly Cloudy'}
+                  {weatherData[0]?.description || "Partly Cloudy"}
                 </p>
               </div>
               <Sun className="w-12 h-12 text-yellow-500" />
@@ -175,7 +173,7 @@ const DashboardPage = () => {
                 </p>
                 <p className="text-sm text-gray-500">
                   {farmerProfile.cropsGrown.slice(0, 2).join(', ')}
-                  {farmerProfile.cropsGrown.length > 2 && '...'}
+                  {farmerProfile.cropsGrown.length > 2 && "..."}
                 </p>
               </div>
               <div className="text-4xl">🌾</div>
@@ -409,7 +407,7 @@ const DashboardPage = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">{scheme.name}</h3>
                       <p className="text-gray-800 font-medium font-kannada text-lg">
-                        {scheme.kannadaName}
+                        {scheme.name}
                       </p>
                     </div>
                     <Award className="w-6 h-6 text-yellow-500" />

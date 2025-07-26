@@ -10,7 +10,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && !user) {
       // If user is authenticated but no farmer profile, redirect to setup
       if (!farmerProfile) {
         router.push('/setup');

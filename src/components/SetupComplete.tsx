@@ -35,7 +35,7 @@ const SetupComplete = ({ farmerName, onContinue }: SetupCompleteProps) => {
           </p>
           
           <div className="bg-green-50 p-4 rounded-lg mb-6">
-            <p className="text-green-800 font-kannada text-lg">
+            <p className="text-green-800 font-medium text-lg">
               ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ರಚಿಸಲಾಗಿದೆ!
             </p>
             <p className="text-green-700 text-sm mt-2">
