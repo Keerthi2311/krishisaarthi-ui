@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow reading community tips subcollection
+      match /communityTips/{tipId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Government schemes are read-only for all authenticated users
+    match /schemes/{schemeId} {
+      allow read: if request.auth != null;
+    }
+    
+    // Community tips can be read by all, written by authenticated users
+    match /communityTips/{tipId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+                   resource == null &&
+                   request.resource.data.userId == request.auth.uid &&
+                   request.resource.data.timestamp == request.time;
+      allow update: if request.auth != null && 
+                   resource.data.userId == request.auth.uid;
+    }
+    
+    // Weather data is read-only
+    match /weather/{document=**} {
+      allow read: if request.auth != null;
+    }
+    
+    // Market data is read-only
+    match /market/{document=**} {
+      allow read: if request.auth != null;
+    }
+  }
+}
