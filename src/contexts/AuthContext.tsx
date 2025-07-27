@@ -42,15 +42,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [farmerProfile, setFarmerProfile] = useState<FarmerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch farmer profile from Firestore
+  // Fetch farmer profile from Firestore and sync with Agents API
   const fetchFarmerProfile = async (uid: string) => {
     try {
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        const data = docSnap.data() as FarmerProfile;
-        setFarmerProfile(data);
+        const localProfile = docSnap.data() as FarmerProfile;
+        setFarmerProfile(localProfile);
+        
+        // Try to sync with Agents API in background
+        try {
+          const { getUserProfile } = await import('@/lib/api');
+          const apiResponse = await getUserProfile(uid);
+          
+          if (apiResponse.success && apiResponse.data) {
+            // If API has newer data, consider updating local profile
+            const apiProfile = apiResponse.data.user;
+            if (new Date(apiProfile.updatedAt) > new Date(localProfile.updatedAt)) {
+              console.log('API has newer profile data, updating local');
+              await setDoc(docRef, apiProfile, { merge: true });
+              setFarmerProfile(apiProfile);
+            }
+          }
+        } catch (apiError) {
+          console.warn('Failed to sync with Agents API:', apiError);
+          // Continue with local profile if API sync fails
+        }
       }
     } catch (error) {
       console.error('Error fetching farmer profile:', error);
@@ -168,8 +187,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: now,
       };
 
+      // Save to Firebase Firestore
       const docRef = doc(db, 'users', user.uid);
       await setDoc(docRef, profile, { merge: true });
+      
+      // Sync with Agents API
+      try {
+        const { createOrUpdateUser } = await import('@/lib/api');
+        await createOrUpdateUser(user.uid, profileData);
+        console.log('Profile synced with Agents API');
+      } catch (syncError) {
+        console.warn('Failed to sync profile with Agents API:', syncError);
+        // Continue with local update even if API sync fails
+      }
+      
       setFarmerProfile(profile);
       toast.success('Profile updated successfully!');
     } catch (error: unknown) {

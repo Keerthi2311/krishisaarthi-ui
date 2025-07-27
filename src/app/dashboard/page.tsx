@@ -27,82 +27,130 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   const loadDashboardData = async () => {
+    if (!user || !farmerProfile) return;
+    
     try {
       setLoading(true);
       
-      // Mock weather data
-      const mockWeather: WeatherData[] = [
-        {
-          date: '2025-01-26',
-          temperature: { min: 18, max: 28 },
-          humidity: 65,
-          rainfall: 0,
-          windSpeed: 12,
-          description: 'Partly Cloudy',
-          actionTip: 'Good day for irrigation and pesticide application'
-        },
-        {
-          date: '2025-01-27',
-          temperature: { min: 20, max: 30 },
-          humidity: 70,
-          rainfall: 5,
-          windSpeed: 8,
-          description: 'Light Rain',
-          actionTip: 'Avoid irrigation, check drainage systems'
-        },
-        {
-          date: '2025-01-28',
-          temperature: { min: 19, max: 29 },
-          humidity: 60,
-          rainfall: 0,
-          windSpeed: 10,
-          description: 'Sunny',
-          actionTip: 'Perfect for harvesting mature crops'
-        },
-        // Add more days...
-      ];
-
-      // Mock market data
-      const mockMarket: MarketData[] = farmerProfile?.cropsGrown.slice(0, 3).map(crop => ({
-        cropName: crop,
-        currentPrice: Math.floor(Math.random() * 100) + 50,
-        priceHistory: Array.from({ length: 21 }, (_, i) => ({
-          date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
-        })),
-        recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
-        explanation: 'Based on current market trends and weather forecast'
-      })) || [];
-
-      // Mock government schemes
-      const mockSchemes: GovernmentScheme[] = [
-        {
-          id: '1',
-          name: 'PM-KISAN',
-          description: 'Income support scheme for small and marginal farmers',
-          benefit: '₹6,000 per year',
-          eligibilityCriteria: {
-            landSize: { min: 0, max: 2, unit: 'hectares' }
+      // Try to fetch real data from API
+      try {
+        const { getDailyRecommendations } = await import('@/lib/api');
+        const recommendations = await getDailyRecommendations(user.uid);
+        
+        setWeatherData(recommendations.weather);
+        setMarketData(recommendations.market);
+        setSchemes(recommendations.schemes);
+        
+      } catch (apiError) {
+        console.warn('API fetch failed, using fallback data:', apiError);
+        
+        // Fallback to mock data if API fails
+        const mockWeather: WeatherData[] = [
+          {
+            date: '2025-01-26',
+            temperature: { min: 18, max: 28 },
+            humidity: 65,
+            rainfall: 0,
+            windSpeed: 12,
+            description: 'Partly Cloudy',
+            actionTip: 'Good day for irrigation and pesticide application'
           },
-          applicationLink: 'https://pmkisan.gov.in',
-          documents: ['Aadhaar Card', 'Land Records', 'Bank Details'],
-        },
-        {
-          id: '2',
-          name: 'Raitha Bandhu',
-          description: 'Karnataka state investment support scheme',
-          benefit: '₹10,000 per hectare',
-          eligibilityCriteria: {
-            landSize: { min: 0, max: 10, unit: 'hectares' }
+          {
+            date: '2025-01-27',
+            temperature: { min: 20, max: 30 },
+            humidity: 70,
+            rainfall: 5,
+            windSpeed: 8,
+            description: 'Light Rain',
+            actionTip: 'Avoid irrigation, check drainage systems'
           },
-          applicationLink: 'https://raitamitra.karnataka.gov.in',
-          documents: ['Land Records', 'Aadhaar Card', 'Bank Passbook'],
-        },
-      ];
+          {
+            date: '2025-01-28',
+            temperature: { min: 19, max: 29 },
+            humidity: 60,
+            rainfall: 0,
+            windSpeed: 10,
+            description: 'Sunny',
+            actionTip: 'Perfect for harvesting mature crops'
+          },
+          {
+            date: '2025-01-29',
+            temperature: { min: 21, max: 31 },
+            humidity: 55,
+            rainfall: 0,
+            windSpeed: 15,
+            description: 'Clear Sky',
+            actionTip: 'Ideal for field preparation and sowing'
+          },
+          {
+            date: '2025-01-30',
+            temperature: { min: 22, max: 32 },
+            humidity: 58,
+            rainfall: 2,
+            windSpeed: 12,
+            description: 'Partly Cloudy',
+            actionTip: 'Light rain expected. Good for transplanting'
+          },
+          {
+            date: '2025-01-31',
+            temperature: { min: 20, max: 28 },
+            humidity: 72,
+            rainfall: 15,
+            windSpeed: 18,
+            description: 'Moderate Rain',
+            actionTip: 'Heavy rain expected. Ensure proper drainage'
+          },
+          {
+            date: '2025-02-01',
+            temperature: { min: 19, max: 27 },
+            humidity: 68,
+            rainfall: 8,
+            windSpeed: 14,
+            description: 'Light Rain',
+            actionTip: 'Post-rain activities. Check for water logging'
+          }
+        ];
 
-      setWeatherData(mockWeather);
-      setMarketData(mockMarket);
-      setSchemes(mockSchemes);
+        const mockMarket: MarketData[] = farmerProfile.cropsGrown.slice(0, 3).map(crop => ({
+          cropName: crop,
+          currentPrice: Math.floor(Math.random() * 100) + 50,
+          priceHistory: Array.from({ length: 21 }, (_, i) => ({
+            date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
+          })),
+          recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
+          explanation: 'Based on current market trends and weather forecast'
+        }));
+
+        const mockSchemes: GovernmentScheme[] = [
+          {
+            id: '1',
+            name: 'PM-KISAN',
+            description: 'Income support scheme for small and marginal farmers',
+            benefit: '₹6,000 per year',
+            eligibilityCriteria: {
+              landSize: { min: 0, max: 2, unit: 'hectares' }
+            },
+            applicationLink: 'https://pmkisan.gov.in',
+            documents: ['Aadhaar Card', 'Land Records', 'Bank Details'],
+          },
+          {
+            id: '2',
+            name: 'Raitha Bandhu',
+            description: 'Karnataka state investment support scheme',
+            benefit: '₹10,000 per hectare',
+            eligibilityCriteria: {
+              landSize: { min: 0, max: 10, unit: 'hectares' }
+            },
+            applicationLink: 'https://raitamitra.karnataka.gov.in',
+            documents: ['Land Records', 'Aadhaar Card', 'Bank Passbook'],
+          },
+        ];
+
+        setWeatherData(mockWeather);
+        setMarketData(mockMarket);
+        setSchemes(mockSchemes);
+      }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {

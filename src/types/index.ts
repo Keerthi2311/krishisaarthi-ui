@@ -97,6 +97,68 @@ export interface AIResponse {
   category: CropAdvice['category'];
 }
 
+// API Request/Response Types for Agents API Integration
+export interface QueryRequest {
+  text?: string;
+  image?: string; // base64 encoded image
+  userId: string;
+  language?: string;
+  location?: {
+    district: string;
+    state?: string;
+  };
+}
+
+export interface QueryResponse {
+  success: boolean;
+  data: {
+    response: string;
+    audioUrl?: string;
+    category: CropAdvice['category'];
+    confidence: number;
+    recommendations?: CropAdvice[];
+  };
+  error?: string;
+}
+
+export interface CreateUserRequest {
+  uid: string;
+  profile: Omit<FarmerProfile, 'uid' | 'createdAt' | 'updatedAt'>;
+}
+
+export interface CreateUserResponse {
+  success: boolean;
+  data?: {
+    user: FarmerProfile;
+  };
+  error?: string;
+}
+
+export interface GetUserResponse {
+  success: boolean;
+  data?: {
+    user: FarmerProfile;
+  };
+  error?: string;
+}
+
+export interface RecommendationsResponse {
+  success: boolean;
+  data?: {
+    weather: WeatherData[];
+    market: MarketData[];
+    schemes: GovernmentScheme[];
+    dailyPlan: CropAdvice;
+  };
+  error?: string;
+}
+
+export interface HealthCheckResponse {
+  success: boolean;
+  status: string;
+  timestamp: string;
+}
+
 // Districts in Karnataka (simplified list)
 export const KARNATAKA_DISTRICTS = [
   'Bagalkot',
