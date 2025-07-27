@@ -14,6 +14,7 @@ import {
   Cloud
 } from 'lucide-react';
 import { WeatherData, MarketData, GovernmentScheme } from '@/types';
+import { getWeatherForecast, getMarketPrices, getRecommendations } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const DashboardPage = () => {
@@ -27,54 +28,34 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   const loadDashboardData = async () => {
+    if (!user || !farmerProfile) return;
+
     try {
       setLoading(true);
       
-      // Mock weather data
-      const mockWeather: WeatherData[] = [
-        {
-          date: '2025-01-26',
-          temperature: { min: 18, max: 28 },
-          humidity: 65,
-          rainfall: 0,
-          windSpeed: 12,
-          description: 'Partly Cloudy',
-          actionTip: 'Good day for irrigation and pesticide application'
-        },
-        {
-          date: '2025-01-27',
-          temperature: { min: 20, max: 30 },
-          humidity: 70,
-          rainfall: 5,
-          windSpeed: 8,
-          description: 'Light Rain',
-          actionTip: 'Avoid irrigation, check drainage systems'
-        },
-        {
-          date: '2025-01-28',
-          temperature: { min: 19, max: 29 },
-          humidity: 60,
-          rainfall: 0,
-          windSpeed: 10,
-          description: 'Sunny',
-          actionTip: 'Perfect for harvesting mature crops'
-        },
-        // Add more days...
-      ];
+      // Load weather forecast
+      const weatherData = await getWeatherForecast(farmerProfile.district);
+      setWeatherData(weatherData);
 
-      // Mock market data
-      const mockMarket: MarketData[] = farmerProfile?.cropsGrown.slice(0, 3).map(crop => ({
-        cropName: crop,
-        currentPrice: Math.floor(Math.random() * 100) + 50,
-        priceHistory: Array.from({ length: 21 }, (_, i) => ({
-          date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
-        })),
-        recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
-        explanation: 'Based on current market trends and weather forecast'
-      })) || [];
+      // Load market prices for user's crops
+      const marketData = await getMarketPrices(
+        farmerProfile.cropsGrown.slice(0, 3), 
+        farmerProfile.district,
+        user.uid
+      );
+      setMarketData(marketData);
 
-      // Mock government schemes
+      // Load personalized recommendations
+      try {
+        const recommendations = await getRecommendations(user.uid);
+        // You can use recommendations to enhance the UI or show additional tips
+        console.log('Recommendations:', recommendations);
+      } catch (error) {
+        console.error('Error loading recommendations:', error);
+        // Continue without recommendations
+      }
+
+      // Mock government schemes (API doesn't specify schemes endpoint)
       const mockSchemes: GovernmentScheme[] = [
         {
           id: '1',
@@ -100,8 +81,6 @@ const DashboardPage = () => {
         },
       ];
 
-      setWeatherData(mockWeather);
-      setMarketData(mockMarket);
       setSchemes(mockSchemes);
     } catch (error) {
       console.error('Error loading dashboard data:', error);

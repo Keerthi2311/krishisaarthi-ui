@@ -13,6 +13,7 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { User, FarmerProfile } from '@/types';
+import { getUserProfile, createUser } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -42,15 +43,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [farmerProfile, setFarmerProfile] = useState<FarmerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch farmer profile from Firestore
+  // Fetch farmer profile from API
   const fetchFarmerProfile = async (uid: string) => {
     try {
-      const docRef = doc(db, 'users', uid);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data() as FarmerProfile;
-        setFarmerProfile(data);
+      const profile = await getUserProfile(uid);
+      if (profile) {
+        setFarmerProfile(profile);
       }
     } catch (error) {
       console.error('Error fetching farmer profile:', error);
@@ -157,21 +155,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update Farmer Profile
+  // Update Farmer Profile using API
   const updateFarmerProfile = async (profileData: Omit<FarmerProfile, 'uid' | 'createdAt' | 'updatedAt'>) => {
     if (!user) throw new Error('No authenticated user');
 
     try {
-      const now = new Date();
-      const profile: FarmerProfile = {
+      const profile = await createUser(user.uid, {
         ...profileData,
         uid: user.uid,
-        createdAt: farmerProfile?.createdAt || now,
-        updatedAt: now,
-      };
-
-      const docRef = doc(db, 'users', user.uid);
-      await setDoc(docRef, profile, { merge: true });
+      });
       setFarmerProfile(profile);
       toast.success('Profile updated successfully!');
     } catch (error: unknown) {

@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { VoiceRecorder } from '@/lib/api';
 
 interface VoiceInputProps {
   onVoiceRecorded: (audioBlob: Blob) => Promise<void>;
@@ -17,35 +18,23 @@ const VoiceInput = ({
   loading = false 
 }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const [voiceRecorder] = useState(() => new VoiceRecorder());
 
   const toggleRecording = async () => {
     if (!isRecording) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          audioChunksRef.current.push(event.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-          await onVoiceRecorded(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
-        };
-
-        mediaRecorder.start();
+        await voiceRecorder.startRecording();
         setIsRecording(true);
       } catch (error) {
         console.error('Error starting recording:', error);
       }
     } else {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
+      try {
+        const audioBlob = await voiceRecorder.stopRecording();
+        setIsRecording(false);
+        await onVoiceRecorded(audioBlob);
+      } catch (error) {
+        console.error('Error stopping recording:', error);
         setIsRecording(false);
       }
     }

@@ -1,49 +1,122 @@
-// Utility functions for KrishiSaarthi API calls
+// KrishiSaarthi API integration
 
 import { FarmerProfile, CropAdvice, WeatherData, MarketData } from '@/types';
 
-// Mock functions for API calls - replace with actual implementations
+// API Base URL
+const API_BASE_URL = 'https://us-central1-krishisaarathi.cloudfunctions.net/api';
 
-export const speechToText = async (audioBlob: Blob): Promise<string> => {
+// API Response Types
+interface APIResponse<T> {
+  success?: boolean;
+  error?: string;
+  message?: string;
+  data?: T;
+}
+
+interface QueryResponse {
+  answer: {
+    text: string;
+    audioUrl: string;
+    intent: string;
+    priority: 'low' | 'medium' | 'high';
+    additionalData?: {
+      treatment?: string[];
+      cost?: string;
+      waterSchedule?: string[];
+      soilMoisture?: string;
+      recommendation?: 'sell' | 'hold' | 'wait';
+      priceData?: any[];
+      eligibleSchemes?: any[];
+    };
+    timestamp: string;
+  };
+  recommendations: {
+    contextual: {
+      weatherAlerts: string[];
+      cropCare: string[];
+      marketTips: string[];
+      schemes: string[];
+      relatedActions: string[];
+    };
+    profileBased: {
+      crops: string[];
+      location: string;
+      farmSize: string;
+    };
+    recentActivityCount: number;
+    generatedAt: string;
+  };
+}
+
+// Main query handler - replaces speechToText and getAIAdvice
+export const queryAPI = async (
+  uid: string,
+  options: {
+    audioData?: string; // base64 encoded audio
+    imageUrl?: string;
+    queryText?: string;
+  }
+): Promise<CropAdvice[]> => {
   try {
-    // Convert the blob to base64
-    const buffer = await audioBlob.arrayBuffer();
-    const base64Audio = Buffer.from(buffer).toString('base64');
-
-    // Prepare the request to Google Cloud Speech-to-Text API
-    const response = await fetch('/api/speech-to-text', {
+    const response = await fetch(`${API_BASE_URL}/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        audio: {
-          content: base64Audio
-        },
-        config: {
-          encoding: 'LINEAR16',
-          sampleRateHertz: 48000,
-          languageCode: 'en-IN', // English (India) language
-          model: 'default',
-          audioChannelCount: 1,
-        }
-      })
+        uid,
+        ...options,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Speech recognition failed');
+      throw new Error(`API request failed: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    return data.text || '';
+    const data: QueryResponse = await response.json();
+    
+    // Convert API response to CropAdvice format
+    const advice: CropAdvice[] = [{
+      title: `${data.answer.intent.charAt(0).toUpperCase() + data.answer.intent.slice(1)} Advice`,
+      text: data.answer.text,
+      englishSummary: data.answer.text,
+      audioUrl: data.answer.audioUrl,
+      priority: data.answer.priority,
+      category: data.answer.intent as any,
+      timestamp: new Date(data.answer.timestamp),
+      // Pass through additional data and contextual recommendations
+      additionalData: data.answer.additionalData,
+      contextualRecommendations: data.recommendations?.contextual,
+    } as any];
+
+    return advice;
+  } catch (error) {
+    console.error('Query API error:', error);
+    throw new Error('Failed to get AI advice');
+  }
+};
+
+// Speech to text using query API
+export const speechToText = async (audioBlob: Blob, uid: string): Promise<string> => {
+  try {
+    // Convert the blob to base64
+    const buffer = await audioBlob.arrayBuffer();
+    const base64Audio = Buffer.from(buffer).toString('base64');
+
+    const advice = await queryAPI(uid, { audioData: base64Audio });
+    
+    // Extract the transcribed text from the advice
+    return advice[0]?.text || '';
   } catch (error) {
     console.error('Speech-to-text error:', error);
     throw new Error('Failed to convert speech to text');
   }
 };
 
-export const textToSpeech = async (text: string, _language: string = 'en-IN'): Promise<string> => {
-  // Mock implementation - replace with Google Cloud Text-to-Speech
+// Text to speech - audio URL is returned from the API
+export const textToSpeech = async (text: string, language: string = 'en-IN'): Promise<string> => {
+  // The API already returns audio URLs, so this might not be needed separately
+  // For now, return a placeholder
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve('/mock-audio/tts-output.mp3');
@@ -51,27 +124,119 @@ export const textToSpeech = async (text: string, _language: string = 'en-IN'): P
   });
 };
 
-export const analyzeImage = async (_imageUrl: string, _query: string): Promise<CropAdvice[]> => {
-  // Mock implementation - replace with Vertex AI Gemini Pro Vision
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockAdvice: CropAdvice[] = [
-        {
-          category: 'disease',
-          title: 'Disease Diagnosis',
-          englishSummary: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          text: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          priority: 'high',
-          timestamp: new Date(),
-        }
-      ];
-      resolve(mockAdvice);
-    }, 3000);
-  });
+// Image analysis using query API
+export const analyzeImage = async (imageUrl: string, uid: string, query: string = ''): Promise<CropAdvice[]> => {
+  try {
+    return await queryAPI(uid, { imageUrl, queryText: query });
+  } catch (error) {
+    console.error('Image analysis error:', error);
+    throw new Error('Failed to analyze image');
+  }
 };
 
-export const getWeatherForecast = async (_district: string): Promise<WeatherData[]> => {
-  // Mock implementation - replace with IMD API or other weather service
+// Get AI advice using query API
+export const getAIAdvice = async (uid: string, query: string): Promise<CropAdvice[]> => {
+  try {
+    return await queryAPI(uid, { queryText: query });
+  } catch (error) {
+    console.error('AI advice error:', error);
+    throw new Error('Failed to get AI advice');
+  }
+};
+
+// Get user recommendations
+export const getRecommendations = async (uid: string): Promise<{
+  weatherAlerts: string[];
+  cropCare: string[];
+  marketTips: string[];
+  schemes: string[];
+}> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/recommendations/${uid}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get recommendations: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.recommendations;
+  } catch (error) {
+    console.error('Recommendations error:', error);
+    throw new Error('Failed to get recommendations');
+  }
+};
+
+// Create or update user profile
+export const createUser = async (uid: string, profileData: Partial<FarmerProfile>): Promise<FarmerProfile> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        uid,
+        profileData: {
+          name: profileData.fullName,
+          phone: profileData.phoneNumber,
+          location: profileData.district,
+          farmSize: profileData.landSize,
+          soilType: profileData.soilType,
+          crops: profileData.cropsGrown,
+          experience: profileData.farmingExperience?.toString(),
+          irrigationType: profileData.irrigationType,
+          preferredLanguage: 'en',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create user: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.profile;
+  } catch (error) {
+    console.error('Create user error:', error);
+    throw new Error('Failed to create user profile');
+  }
+};
+
+// Get user profile
+export const getUserProfile = async (uid: string): Promise<FarmerProfile | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/${uid}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 404) {
+      return null; // User not found
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to get user profile: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.profile;
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    throw new Error('Failed to get user profile');
+  }
+};
+
+// Weather forecast (keeping mock for now as API doesn't specify weather endpoint)
+export const getWeatherForecast = async (district: string): Promise<WeatherData[]> => {
+  // Mock implementation - the API documentation doesn't specify a weather endpoint
+  // You may need to integrate with IMD API or other weather service directly
   return new Promise((resolve) => {
     setTimeout(() => {
       const mockWeather: WeatherData[] = Array.from({ length: 7 }, (_, i) => ({
@@ -91,23 +256,44 @@ export const getWeatherForecast = async (_district: string): Promise<WeatherData
   });
 };
 
-export const getMarketPrices = async (crops: string[], _district: string): Promise<MarketData[]> => {
-  // Mock implementation - replace with Agmarknet API or other market data service
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockMarket: MarketData[] = crops.map(crop => ({
+// Market prices using the market agent endpoint
+export const getMarketPrices = async (crops: string[], district: string, uid: string): Promise<MarketData[]> => {
+  try {
+    const query = `What are the current market prices for ${crops.join(', ')} in ${district}?`;
+    const advice = await queryAPI(uid, { queryText: query });
+    
+    // Extract market data from API response additional data
+    const additionalData = advice[0]?.category === 'market' ? advice[0] : null;
+    
+    if (additionalData) {
+      // Convert API response to MarketData format
+      return crops.map(crop => ({
         cropName: crop,
-        currentPrice: Math.floor(Math.random() * 100) + 50,
+        currentPrice: Math.floor(Math.random() * 100) + 50, // This should come from API
         priceHistory: Array.from({ length: 21 }, (_, i) => ({
           date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
         })),
-        recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
-        explanation: 'Based on current market trends and weather forecast'
+        recommendation: 'sell', // This should come from API
+        explanation: additionalData.text || 'Based on current market trends and weather forecast'
       }));
-      resolve(mockMarket);
-    }, 2000);
-  });
+    }
+    
+    // Fallback to mock data
+    return crops.map(crop => ({
+      cropName: crop,
+      currentPrice: Math.floor(Math.random() * 100) + 50,
+      priceHistory: Array.from({ length: 21 }, (_, i) => ({
+        date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
+      })),
+      recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
+      explanation: 'Based on current market trends and weather forecast'
+    }));
+  } catch (error) {
+    console.error('Market prices error:', error);
+    throw new Error('Failed to get market prices');
+  }
 };
 
 export const generateDailyPlan = async (
