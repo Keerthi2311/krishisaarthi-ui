@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { CropAdvice } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import AdviceResults from '@/components/home/AdviceResults';
 import toast from 'react-hot-toast';
 
 const SmartAdvisorPage = () => {
@@ -20,6 +21,7 @@ const SmartAdvisorPage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [advice, setAdvice] = useState<CropAdvice[]>([]);
+  const [error, setError] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -130,57 +132,47 @@ const SmartAdvisorPage = () => {
     }
   };
 
-  // Get farming advice (mock implementation)
+  // Get farming advice using real API
   const getSmartAdvice = async () => {
     if (!imageUrl && !queryText.trim()) {
       toast.error('Please upload an image or provide a voice query');
       return;
     }
 
+    if (!user || !farmerProfile) {
+      toast.error('User authentication required');
+      return;
+    }
+
     try {
       setIsLoading(true);
+      setError(null);
       
-      // Mock API call - in real app, call Firebase Cloud Function
-      const mockAdvice: CropAdvice[] = [
-        {
-          category: 'disease',
-          title: 'Disease Diagnosis',
-          englishSummary: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          text: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          priority: 'high',
-          timestamp: new Date(),
-        },
-        {
-          category: 'weather',
-          title: 'Weather & Irrigation',
-          englishSummary: 'Light rain expected tomorrow. Reduce watering and ensure proper drainage.',
-          text: 'Light rain expected tomorrow. Reduce watering and ensure proper drainage.',
-          priority: 'medium',
-          timestamp: new Date(),
-        },
-        {
-          category: 'market',
-          title: 'Market Tips',
-          englishSummary: 'Tomato prices are expected to rise next week. Consider harvesting soon.',
-          text: 'Tomato prices are expected to rise next week. Consider harvesting soon.',
-          priority: 'medium',
-          timestamp: new Date(),
-        },
-        {
-          category: 'scheme',
-          title: 'Scheme Suggestions',
-          englishSummary: 'You are eligible for PM-KISAN scheme. Apply for ₹6000 annual benefit.',
-          text: 'You are eligible for PM-KISAN scheme. Apply for ₹6000 annual benefit.',
-          priority: 'low',
-          timestamp: new Date(),
-        },
-      ];
+      // Import API function dynamically to avoid loading issues
+      const { queryAI } = await import('@/lib/api');
+      
+      const advice = await queryAI(
+        queryText.trim() || undefined,
+        imageUrl || undefined,
+        user.uid,
+        farmerProfile.district
+      );
 
-      setAdvice(mockAdvice);
-      toast.success('Advice generated successfully!');
+      setAdvice(advice);
+      toast.success('AI advice generated successfully!');
+      
+      // Clear inputs after successful query
+      setQueryText('');
+      setImageUrl('');
+      setImageFile(null);
     } catch (error) {
-      console.error('Error getting advice:', error);
-      toast.error('Failed to get farming advice');
+      console.error('Error getting AI advice:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get farming advice';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Clear advice on error
+      setAdvice([]);
     } finally {
       setIsLoading(false);
     }
@@ -348,52 +340,11 @@ const SmartAdvisorPage = () => {
 
             {/* Results Section */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  AI Recommendations
-                </h2>
-                
-                {advice.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 text-lg mb-2">🤖</div>
-                    <p className="text-gray-600">
-                      Upload an image or record your query to get personalized farming advice
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {advice.map((item, index) => (
-                      <div
-                        key={index}
-                        className={`border-l-4 p-4 rounded-r-lg ${
-                          item.priority === 'high' 
-                            ? 'border-red-500 bg-red-50' 
-                            : item.priority === 'medium'
-                            ? 'border-yellow-500 bg-yellow-50'
-                            : 'border-green-500 bg-green-50'
-                        }`}
-                      >
-                        <h3 className="font-semibold text-gray-900 mb-2">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm text-gray-700 mb-2">
-                          {item.englishSummary}
-                        </p>
-                        <p className="text-sm text-gray-800 font-medium mb-3">
-                          {item.text}
-                        </p>
-                        
-                        {item.audioUrl && (
-                          <audio controls className="w-full">
-                            <source src={item.audioUrl} type="audio/mpeg" />
-                            Your browser does not support the audio element.
-                          </audio>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <AdviceResults 
+                advice={advice} 
+                loading={isLoading} 
+                error={error}
+              />
             </div>
           </div>
         </div>

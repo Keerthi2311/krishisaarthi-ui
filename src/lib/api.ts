@@ -1,9 +1,195 @@
 // Utility functions for KrishiSaarthi API calls
 
-import { FarmerProfile, CropAdvice, WeatherData, MarketData } from '@/types';
+import { 
+  FarmerProfile, 
+  CropAdvice, 
+  WeatherData, 
+  MarketData,
+  GovernmentScheme,
+  QueryRequest,
+  QueryResponse,
+  CreateUserRequest,
+  CreateUserResponse,
+  GetUserResponse,
+  RecommendationsResponse,
+  HealthCheckResponse
+} from '@/types';
 
-// Mock functions for API calls - replace with actual implementations
+// API Configuration
+const API_BASE_URL = 'https://us-central1-krishisaarathi.cloudfunctions.net/api';
 
+// Utility function to handle API requests
+const apiRequest = async <T>(
+  endpoint: string, 
+  options: RequestInit = {}
+): Promise<T> => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+// API Health Check
+export const checkApiHealth = async (): Promise<HealthCheckResponse> => {
+  try {
+    return await apiRequest<HealthCheckResponse>('/health');
+  } catch (error) {
+    console.error('API health check failed:', error);
+    throw error;
+  }
+};
+
+// User Management Functions
+export const createOrUpdateUser = async (
+  uid: string, 
+  profile: Omit<FarmerProfile, 'uid' | 'createdAt' | 'updatedAt'>
+): Promise<CreateUserResponse> => {
+  try {
+    const request: CreateUserRequest = { uid, profile };
+    return await apiRequest<CreateUserResponse>('/users', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  } catch (error) {
+    console.error('Error creating/updating user:', error);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (uid: string): Promise<GetUserResponse> => {
+  try {
+    return await apiRequest<GetUserResponse>(`/users/${uid}`);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
+// Main AI Query Function
+export const queryAI = async (
+  text: string | undefined,
+  imageUrl: string | undefined,
+  userId: string,
+  district: string
+): Promise<CropAdvice[]> => {
+  try {
+    let imageBase64: string | undefined;
+    
+    // Convert image URL to base64 if provided
+    if (imageUrl) {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      imageBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          resolve(base64.split(',')[1]); // Remove data URL prefix
+        };
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    const request: QueryRequest = {
+      text,
+      image: imageBase64,
+      userId,
+      location: { district },
+      language: 'en-IN',
+    };
+
+    const response = await apiRequest<QueryResponse>('/query', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || 'AI query failed');
+    }
+
+    // Convert response to CropAdvice format
+    const advice: CropAdvice[] = [];
+    
+    if (response.data.response) {
+      advice.push({
+        category: response.data.category,
+        title: getCategoryTitle(response.data.category),
+        englishSummary: response.data.response,
+        text: response.data.response,
+        audioUrl: response.data.audioUrl,
+        priority: getPriorityFromCategory(response.data.category),
+        timestamp: new Date(),
+      });
+    }
+
+    // Add additional recommendations if provided
+    if (response.data.recommendations) {
+      advice.push(...response.data.recommendations);
+    }
+
+    return advice;
+  } catch (error) {
+    console.error('Error querying AI:', error);
+    throw error;
+  }
+};
+
+// Get Daily Recommendations
+export const getDailyRecommendations = async (uid: string): Promise<{
+  weather: WeatherData[];
+  market: MarketData[];
+  schemes: GovernmentScheme[];
+  dailyPlan: CropAdvice;
+}> => {
+  try {
+    const response = await apiRequest<RecommendationsResponse>(`/recommendations/${uid}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch recommendations');
+    }
+
+    return response.data!;
+  } catch (error) {
+    console.error('Error fetching daily recommendations:', error);
+    throw error;
+  }
+};
+
+// Helper functions
+const getCategoryTitle = (category: CropAdvice['category']): string => {
+  const titles = {
+    weather: 'Weather & Irrigation',
+    disease: 'Disease Diagnosis',
+    scheme: 'Scheme Suggestions',
+    market: 'Market Insights',
+    daily: 'Daily Action Plan',
+  };
+  return titles[category] || 'AI Recommendation';
+};
+
+const getPriorityFromCategory = (category: CropAdvice['category']): 'high' | 'medium' | 'low' => {
+  const priorities = {
+    disease: 'high' as const,
+    weather: 'medium' as const,
+    market: 'medium' as const,
+    scheme: 'low' as const,
+    daily: 'medium' as const,
+  };
+  return priorities[category] || 'medium';
+};
+
+// Keep existing speech to text functionality (local API route)
 export const speechToText = async (audioBlob: Blob): Promise<string> => {
   try {
     // Convert the blob to base64
@@ -40,95 +226,6 @@ export const speechToText = async (audioBlob: Blob): Promise<string> => {
     console.error('Speech-to-text error:', error);
     throw new Error('Failed to convert speech to text');
   }
-};
-
-export const textToSpeech = async (text: string, _language: string = 'en-IN'): Promise<string> => {
-  // Mock implementation - replace with Google Cloud Text-to-Speech
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve('/mock-audio/tts-output.mp3');
-    }, 1000);
-  });
-};
-
-export const analyzeImage = async (_imageUrl: string, _query: string): Promise<CropAdvice[]> => {
-  // Mock implementation - replace with Vertex AI Gemini Pro Vision
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockAdvice: CropAdvice[] = [
-        {
-          category: 'disease',
-          title: 'Disease Diagnosis',
-          englishSummary: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          text: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
-          priority: 'high',
-          timestamp: new Date(),
-        }
-      ];
-      resolve(mockAdvice);
-    }, 3000);
-  });
-};
-
-export const getWeatherForecast = async (_district: string): Promise<WeatherData[]> => {
-  // Mock implementation - replace with IMD API or other weather service
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockWeather: WeatherData[] = Array.from({ length: 7 }, (_, i) => ({
-        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        temperature: { 
-          min: 18 + Math.floor(Math.random() * 5), 
-          max: 28 + Math.floor(Math.random() * 8) 
-        },
-        humidity: 60 + Math.floor(Math.random() * 20),
-        rainfall: Math.random() > 0.7 ? Math.floor(Math.random() * 20) : 0,
-        windSpeed: 8 + Math.floor(Math.random() * 10),
-        description: Math.random() > 0.5 ? 'Partly Cloudy' : 'Sunny',
-        actionTip: 'Good day for farming activities'
-      }));
-      resolve(mockWeather);
-    }, 1500);
-  });
-};
-
-export const getMarketPrices = async (crops: string[], _district: string): Promise<MarketData[]> => {
-  // Mock implementation - replace with Agmarknet API or other market data service
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockMarket: MarketData[] = crops.map(crop => ({
-        cropName: crop,
-        currentPrice: Math.floor(Math.random() * 100) + 50,
-        priceHistory: Array.from({ length: 21 }, (_, i) => ({
-          date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
-        })),
-        recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
-        explanation: 'Based on current market trends and weather forecast'
-      }));
-      resolve(mockMarket);
-    }, 2000);
-  });
-};
-
-export const generateDailyPlan = async (
-  _farmerProfile: FarmerProfile, 
-  _weather: WeatherData[], 
-  _market: MarketData[]
-): Promise<CropAdvice> => {
-  // Mock implementation - replace with Vertex AI
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const plan: CropAdvice = {
-        category: 'daily',
-        title: 'Today\'s Action Plan',
-        englishSummary: 'Focus on irrigation and check for pests. Weather is favorable for fieldwork.',
-        text: 'Focus on irrigation and check for pests. Weather is favorable for fieldwork.',
-        priority: 'medium',
-        timestamp: new Date(),
-      };
-      resolve(plan);
-    }, 2500);
-  });
 };
 
 // Voice recording utilities
@@ -219,4 +316,98 @@ export const formatDate = (date: string | Date): string => {
 
 export const formatTemperature = (temp: number): string => {
   return `${temp}°C`;
+};
+
+// Legacy mock functions for fallback (kept for compatibility during transition)
+export const analyzeImage = async (imageUrl: string, query: string): Promise<CropAdvice[]> => {
+  console.warn('Using legacy analyzeImage function. Use queryAI instead.');
+  // Mock implementation fallback
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const mockAdvice: CropAdvice[] = [
+        {
+          category: 'disease',
+          title: 'Disease Diagnosis',
+          englishSummary: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
+          text: 'Your crop shows signs of nutrient deficiency. Apply nitrogen-rich fertilizer.',
+          priority: 'high',
+          timestamp: new Date(),
+        }
+      ];
+      resolve(mockAdvice);
+    }, 3000);
+  });
+};
+
+export const getWeatherForecast = async (district: string): Promise<WeatherData[]> => {
+  console.warn('Using legacy getWeatherForecast function. Use getDailyRecommendations instead.');
+  // Mock implementation fallback
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const mockWeather: WeatherData[] = Array.from({ length: 7 }, (_, i) => ({
+        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        temperature: { 
+          min: 18 + Math.floor(Math.random() * 5), 
+          max: 28 + Math.floor(Math.random() * 8) 
+        },
+        humidity: 60 + Math.floor(Math.random() * 20),
+        rainfall: Math.random() > 0.7 ? Math.floor(Math.random() * 20) : 0,
+        windSpeed: 8 + Math.floor(Math.random() * 10),
+        description: Math.random() > 0.5 ? 'Partly Cloudy' : 'Sunny',
+        actionTip: 'Good day for farming activities'
+      }));
+      resolve(mockWeather);
+    }, 1500);
+  });
+};
+
+export const getMarketPrices = async (crops: string[], district: string): Promise<MarketData[]> => {
+  console.warn('Using legacy getMarketPrices function. Use getDailyRecommendations instead.');
+  // Mock implementation fallback
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const mockMarket: MarketData[] = crops.map(crop => ({
+        cropName: crop,
+        currentPrice: Math.floor(Math.random() * 100) + 50,
+        priceHistory: Array.from({ length: 21 }, (_, i) => ({
+          date: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          price: Math.floor(Math.random() * 20) + 40 + (Math.random() > 0.5 ? 10 : -10)
+        })),
+        recommendation: Math.random() > 0.5 ? 'sell' : 'hold',
+        explanation: 'Based on current market trends and weather forecast'
+      }));
+      resolve(mockMarket);
+    }, 2000);
+  });
+};
+
+export const generateDailyPlan = async (
+  farmerProfile: FarmerProfile, 
+  weather: WeatherData[], 
+  market: MarketData[]
+): Promise<CropAdvice> => {
+  console.warn('Using legacy generateDailyPlan function. Use getDailyRecommendations instead.');
+  // Mock implementation fallback
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const plan: CropAdvice = {
+        category: 'daily',
+        title: 'Today\'s Action Plan',
+        englishSummary: 'Focus on irrigation and check for pests. Weather is favorable for fieldwork.',
+        text: 'Focus on irrigation and check for pests. Weather is favorable for fieldwork.',
+        priority: 'medium',
+        timestamp: new Date(),
+      };
+      resolve(plan);
+    }, 2500);
+  });
+};
+
+export const textToSpeech = async (text: string, language: string = 'en-IN'): Promise<string> => {
+  // Mock implementation - replace with Google Cloud Text-to-Speech
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve('/mock-audio/tts-output.mp3');
+    }, 1000);
+  });
 };
