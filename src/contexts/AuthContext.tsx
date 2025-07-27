@@ -60,21 +60,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Monitor auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        const userData: User = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || undefined,
-          phoneNumber: firebaseUser.phoneNumber || undefined,
-          displayName: firebaseUser.displayName || undefined,
-          photoURL: firebaseUser.photoURL || undefined,
-        };
-        setUser(userData);
-        await fetchFarmerProfile(firebaseUser.uid);
-      } else {
-        setUser(null);
-        setFarmerProfile(null);
+      try {
+        if (firebaseUser) {
+          const userData: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || undefined,
+            phoneNumber: firebaseUser.phoneNumber || undefined,
+            displayName: firebaseUser.displayName || undefined,
+            photoURL: firebaseUser.photoURL || undefined,
+          };
+          setUser(userData);
+          await fetchFarmerProfile(firebaseUser.uid);
+        } else {
+          setUser(null);
+          setFarmerProfile(null);
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -83,7 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Google Sign In
   const signInWithGoogle = async () => {
     try {
-      setLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       // result is used for authentication flow
       console.log('Authentication successful:', result.user.uid);
@@ -92,8 +96,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error signing in with Google:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
       toast.error(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 

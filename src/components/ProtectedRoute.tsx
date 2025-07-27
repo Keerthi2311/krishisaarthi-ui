@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Set this to true to bypass authentication (DEVELOPMENT ONLY)
-const DISABLE_AUTH = true;
+const DISABLE_AUTH = false;
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

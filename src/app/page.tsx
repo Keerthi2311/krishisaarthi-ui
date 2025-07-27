@@ -10,14 +10,17 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      // If user is authenticated but no farmer profile, redirect to setup
-      if (!farmerProfile) {
-        router.push('/setup');
-      } else {
-        // If user has completed profile, redirect to home
-        router.push('/home');
+    if (!loading) {
+      if (user) {
+        // If user is authenticated but no farmer profile, redirect to setup
+        if (!farmerProfile) {
+          router.push('/setup');
+        } else {
+          // If user has completed profile, redirect to home
+          router.push('/home');
+        }
       }
+      // If no user, stay on login page (don't redirect)
     }
   }, [user, farmerProfile, loading, router]);
 
